@@ -115,6 +115,11 @@ img,video,iframe{max-width:100%}
 }
 main{min-width:0}
 @media(max-width:900px){.side{display:none!important}}
+.cr{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--edge)}
+h3+.cr{border-top:0;padding-top:0}
+.cr span{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);font-weight:700}.cr b{font-weight:700;text-align:right}
+#credM{display:none;max-width:1680px;width:calc(100% - 20px);margin:0 auto 40px}
+@media(max-width:900px){#credM{display:block}}
 </style></head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div>
@@ -150,10 +155,18 @@ main{min-width:0}
  <div id="feed"><div class="glass empty">Loading the feed…</div></div>
 </main>
 <aside class="side">
+ <div class="glass card" id="credR"><h3>✨ Credits</h3>
+ <div class="cr"><span>Owner</span><b>Lucia (Linda)</b></div>
+ <div class="cr"><span>Co-Owner</span><b>Kuromi</b></div>
+ <div class="cr"><span>Website Dev</span><b>Kalvinn</b></div></div>
  <div class="glass card" id="annR" hidden><h3>Earlier announcements</h3><div id="annRb"></div></div>
  <div class="glass card" id="clog" hidden><h3>📝 Changelog</h3><div id="clogb"></div></div>
 </aside>
 </div>
+<footer class="glass card" id="credM"><h3>✨ Credits</h3>
+ <div class="cr"><span>Owner</span><b>Lucia (Linda)</b></div>
+ <div class="cr"><span>Co-Owner</span><b>Kuromi</b></div>
+ <div class="cr"><span>Website Dev</span><b>Kalvinn</b></div></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SB_URL='https://dvvnvefgacwnzohucpyv.supabase.co';
