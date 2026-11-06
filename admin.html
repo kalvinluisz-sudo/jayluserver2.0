@@ -229,6 +229,7 @@ function palms(){
  g.innerHTML=h;
 }
 let lastW=innerWidth;palms();addEventListener('resize',()=>{if(innerWidth!==lastW){lastW=innerWidth;palms()}});
-sb.auth.getSession().then(({data})=>show(!!data.session));
+const isAdm=s=>!!(s&&s.user&&s.user.email==='admin@jaylunation.com');
+sb.auth.getSession().then(({data})=>show(isAdm(data.session)));
 </script>
 </body></html>
