@@ -146,7 +146,7 @@ h3+.cr{border-top:0;padding-top:0}
   <textarea id="text" rows="3" placeholder="What’s on your mind, Leonida? Paste a YouTube, TikTok, Instagram, Spotify, Vimeo or Twitch link to embed it."></textarea>
   <div id="prev" style="margin-top:10px"></div><div id="eprev"></div>
   <div class="row">
-   <select id="cat" style="width:auto"><option>Screenshots</option><option>Theories</option><option>Fan Art</option><option>Memes</option><option>General</option></select>
+   <select id="cat" style="width:auto"><option>General</option><option>Screenshots</option><option>Theories</option><option>Fan Art</option><option>Memes</option></select>
    <button class="btn" id="attach">📷 Photo / Video</button><input class="file" id="file" type="file" accept="image/*,video/*">
    <span class="sp"></span><button class="btn pri" id="post">Post</button>
   </div>
@@ -171,8 +171,8 @@ h3+.cr{border-top:0;padding-top:0}
 <script>
 const SB_URL='https://dvvnvefgacwnzohucpyv.supabase.co';
 const SB_KEY='sb_publishable_r7r6IKE2uMinM7iA1mr42Q_kFDZAqae';
-const CATS=['All','Screenshots','Theories','Fan Art','Memes','General'];
-let lastSig='',lastEm='',sb=null,filter='All',picked=null,posts=[],likes=[],cmts=[],open=new Set();
+const CATS=['General','All','Screenshots','Theories','Fan Art','Memes'];
+let lastSig='',lastEm='',sb=null,filter='General',picked=null,posts=[],likes=[],cmts=[],open=new Set();
 const $=id=>document.getElementById(id);
 let muted=false;try{muted=localStorage.getItem('jl_mute')==='1'}catch(e){}
 let AC=null;
@@ -321,7 +321,7 @@ $('post').onclick=async()=>{
   const name=$('nick').value.trim()||'Fan';
   const r=await sb.from('posts').insert({name,text,cat:$('cat').value,media,mt});
   if(r.error)throw r.error;
-  $('text').value='';picked=null;$('file').value='';$('prev').innerHTML='';$('eprev').innerHTML='';lastEm='';note('');sfx('success');
+  $('text').value='';picked=null;$('file').value='';$('prev').innerHTML='';$('eprev').innerHTML='';lastEm='';note('');sfx('success');filter=$('cat').value;shown=8;$('cat').value='General';
   await load();
  }catch(e){note('Couldn’t post: '+(e&&e.message||'unknown error'))}
  b.disabled=false;b.textContent='Post';
