@@ -203,18 +203,38 @@ html.lock{overflow:hidden}
 .tbadge .i{fill:currentColor;stroke:none}
 /* lightbox */
 .lb{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
-.lb-bd{position:absolute;inset:0;background:rgba(10,6,22,.86);animation:pfade .2s ease-out both}
-.lb-wrap{position:relative;width:100%;max-width:640px;display:flex;justify-content:center}
-.lb-card{position:relative;flex:1;min-width:0;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-l);animation:pin .3s cubic-bezier(.2,1.2,.4,1) both}
+.lb-bd{position:absolute;inset:0;background:rgba(10,6,22,.92);animation:pfade .2s ease-out both}
+.lb-wrap{position:relative;width:100%;max-width:1080px}
+.lb-card{position:relative;width:100%;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-l);animation:pin .3s cubic-bezier(.2,1.2,.4,1) both}
 .lb-card:focus{outline:0}
-.lb-card .post{padding:18px 16px;transition:none;will-change:auto}
-.lb-card .hd{padding-right:44px}
+.lbm{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden;background:#0c0818}
+.lbm img,.lbm video{display:block;width:100%;max-height:62vh;max-height:62dvh;object-fit:contain}
+.lb-side{display:flex;flex-direction:column;min-width:0;min-height:0}
+.lbm+.lb-side{border-top:1px solid var(--line)}
+.lb-sc{flex:1;min-height:0;padding:16px}
+.lb-sc .hd{padding-right:44px}
+.lb-sc .cm{margin-top:16px}
+.lb-sf{flex:none;padding:4px 16px 16px;border-top:1px solid var(--line)}
+.lb-sf .field{margin-top:4px}
+.lb-sf .hint{margin-top:8px}
 .lb-x{position:absolute;top:8px;right:8px;z-index:2;background:rgba(27,19,48,.8)}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--paper)}
 .lb-nav:hover{background:var(--raise)}
 .lb-nav.prev{left:-58px}
 .lb-nav.next{right:-58px}
-@media(max-width:760px){.lb-nav{display:none}.feed.gal{gap:2px}}
+@media(max-width:899px){.lb-nav{display:none}}
+@media(min-width:900px){
+ .lb{padding-left:76px;padding-right:76px}
+ .lb-card{height:min(780px,calc(100vh - 32px));height:min(780px,calc(100dvh - 32px));overflow:hidden}
+ #lb-b{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr)}
+ #lb-b.nomed{display:block}
+ .lbm img,.lbm video{width:auto;max-width:100%;max-height:100%}
+ .lb-side{height:100%}
+ .lbm+.lb-side{border-top:0;border-left:1px solid var(--line)}
+ .lb-sc{overflow:auto}
+ #lb-b.nomed .lb-side{max-width:520px;margin:0 auto}
+}
+@media(max-width:700px){.feed.gal{gap:2px}}
 @media(max-width:700px){
   .hero-in{grid-template-columns:minmax(0,1fr);padding:26px 16px 112px}
   .palms{height:100px}
@@ -378,7 +398,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 let me='',user=null;
 function ago(t){const s=(Date.now()-t)/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 function note(m){const n=$('note');n.textContent=m;n.hidden=!m;if(m)sfx(/couldn’t|failed|not allowed|too big/i.test(m)?'error':/posted|published|removed|cleared|saved/i.test(m)?'success':'')}
-function chips(){$('chips').innerHTML=CATS.map(c=>{const n=c==='All'?posts.length:posts.filter(p=>p.cat===c).length;return `<button class="mi${c===filter?' on':''}" type="button" data-c="${c}" aria-pressed="${c===filter}"><span>${c}</span><small>${n}</small></button>`}).join('')}
+function chips(){$('chips').innerHTML=CATS.map(c=>{const n=c==='All'?posts.length:posts.filter(p=>p.cat===c&&(c!=='JayLu'||p.media)).length;return `<button class="mi${c===filter?' on':''}" type="button" data-c="${c}" aria-pressed="${c===filter}"><span>${c}</span><small>${n}</small></button>`}).join('')}
 function parseAnn(v){try{const a=JSON.parse(v);if(Array.isArray(a))return a}catch(e){}return v?[{t:v,ts:0}]:[]}
 let ANN=[],LOG=[],popQ=[],popTot=0,popI=0,popBack=null;
 async function loadClog(){
@@ -517,8 +537,8 @@ function reveal(){
   el.classList.add('pre');rvio.observe(el);
  });
 }
-let lbId='',lbBack=null,gdirty=false;
-const lbList=()=>posts.filter(p=>filter==='All'||p.cat===filter);
+let lbId='',lbCur='',lbBack=null,gdirty=false;
+const lbList=()=>posts.filter(p=>(filter==='All'||p.cat===filter)&&(filter!=='JayLu'||p.media));
 function tile(p){
  const L=likes.filter(l=>l.post_id===p.id).length,C=cmts.filter(c=>c.post_id===p.id).length;
  const inner=p.media
@@ -526,9 +546,23 @@ function tile(p){
   :`<span class="ttxt"><span>${esc((p.text||'').slice(0,160))}</span></span>`;
  return `<button class="tile" type="button" data-id="${esc(p.id)}" data-lb="${esc(p.id)}" aria-label="Open post by ${esc(p.name)}">${inner}<span class="tov"><span>${ic('heart-fill')}${L}</span><span>${ic('chat')}${C}</span></span></button>`;
 }
+function lbSide(p){
+ const L=likes.filter(l=>l.post_id===p.id),mine=L.some(l=>l.voter===me),C=cmts.filter(c=>c.post_id===p.id),R=rich(p.text||''),own=p.user_id&&p.user_id===me;
+ return `<div class="lb-sc"><div class="hd">${avDot(p.name,p.avatar,p.user_id)}<div class="meta"><b>${esc(p.name)}</b><time>${ago(new Date(p.created_at).getTime())}</time></div>${own?`<button class="ibtn" type="button" data-del="${esc(p.id)}" title="Delete your post" aria-label="Delete your post">${ic('trash')}</button>`:''}</div>${p.text?`<div class="txt">${R.out}</div>`:''}${R.embeds}<div class="cm">${C.length?C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join(''):'<p class="hint">No comments yet.</p>'}</div></div><div class="lb-sf"><div class="acts"><button class="act${mine?' liked':''}" type="button" data-like="${esc(p.id)}" aria-pressed="${mine}">${ic(mine?'heart-fill':'heart')}Like${L.length?' '+L.length:''}</button></div>${user?`<input class="field" type="text" placeholder="Add a comment…" aria-label="Write a comment" data-in="${esc(p.id)}">`:'<p class="hint">Log in with Discord to like and comment.</p>'}</div>`;
+}
 function renderLb(){
  const p=posts.find(x=>x.id===lbId);if(!p){lbClose();return}
- const c=$('lb-card'),st=c.scrollTop;$('lb-b').innerHTML=card(p);c.scrollTop=st;
+ const b=$('lb-b');
+ if(lbCur!==lbId||!$('lb-side')){
+  const m=p.media?(p.mt==='video'?`<video src="${esc(p.media)}" controls playsinline></video>`:`<img src="${esc(p.media)}" alt="">`):'';
+  b.className=m?'':'nomed';
+  b.innerHTML=(m?`<div class="lbm">${m}</div>`:'')+`<div class="lb-side" id="lb-side">${lbSide(p)}</div>`;
+  lbCur=lbId;
+ }else{
+  const o=b.querySelector('.lb-sc'),st=o?o.scrollTop:0;
+  $('lb-side').innerHTML=lbSide(p);
+  const n=b.querySelector('.lb-sc');if(n)n.scrollTop=st;
+ }
  const l=lbList(),i=l.findIndex(x=>x.id===lbId);
  $('lb-prev').hidden=i<=0;$('lb-next').hidden=i<0||i>=l.length-1;
 }
@@ -538,7 +572,7 @@ function lbOpen(id){
  renderLb();$('lb-card').scrollTop=0;$('lb-card').focus();
 }
 function lbClose(){
- lbId='';$('lb').hidden=true;$('lb-b').innerHTML='';
+ lbId='';lbCur='';$('lb').hidden=true;$('lb-b').innerHTML='';
  if($('pop').hidden)document.documentElement.classList.remove('lock');
  if(lbBack&&lbBack.focus&&document.contains(lbBack))lbBack.focus();lbBack=null;
  if(gdirty){gdirty=false;render()}
@@ -565,7 +599,7 @@ function render(){
  if(!$('lb').hidden){gdirty=true;renderLb();return}
  chips();
  const list=lbList();
- if(!list.length){$('feed').className='feed';$('feed').innerHTML='<div class="state">No posts in this topic yet. Be the first to post.</div>';return}
+ if(!list.length){$('feed').className='feed';$('feed').innerHTML=filter==='JayLu'?'<div class="state">No photos yet. Post a photo or video in JayLu to start the gallery.</div>':'<div class="state">No posts in this topic yet. Be the first to post.</div>';return}
  if(filter==='JayLu'){$('feed').className='feed gal';$('feed').innerHTML=list.map(tile).join('');reveal();return}
  $('feed').className='feed';
  $('feed').innerHTML=list.slice(0,shown).map(card).join('')+tail(list.length);
