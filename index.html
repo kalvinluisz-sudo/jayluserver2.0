@@ -120,6 +120,7 @@ h3+.cr{border-top:0;padding-top:0}
 .cr span{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);font-weight:700}.cr b{font-weight:700;text-align:right}
 #credM{display:none;max-width:1680px;width:calc(100% - 20px);margin:0 auto 40px}
 @media(max-width:900px){#credM{display:block}}
+.cdrow{display:flex;gap:10px 36px;flex-wrap:wrap}.cdrow>.cdwrap{flex:1 1 360px}
 </style></head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div>
@@ -137,8 +138,11 @@ h3+.cr{border-top:0;padding-top:0}
  <div class="glass card" id="annM" hidden style="margin-bottom:16px"><h3>📢 Announcement</h3><div id="annMb"></div></div>
  <div class="glass card" id="clM" hidden style="margin-bottom:16px"><h3>📝 What’s new</h3><div id="clMb"></div></div>
  <section class="glass hero"><h1>Welcome to <span>JayLu Nation</span></h1><p>Leonida is calling. Drop your screenshots, clips, theories and fan art — the whole nation can see it.</p>
-  <div class="cdwrap"><div class="cdlab" id="cdl">🌴 GTA VI releases Nov 19, 2026 · New Zealand time</div>
+  <div class="cdrow"><div class="cdwrap"><div class="cdlab" id="cdl">🌴 GTA VI releases Nov 19, 2026 · New Zealand time</div>
   <div class="cd" id="cd"><div><b id="cd-d">--</b><span>Days</span></div><div><b id="cd-h">--</b><span>Hours</span></div><div><b id="cd-m">--</b><span>Minutes</span></div><div><b id="cd-s">--</b><span>Seconds</span></div></div></div>
+  <div class="cdwrap"><div class="cdlab" id="prel">⬇️ Game preload starts Nov 10, 2026 · New Zealand time</div>
+  <div class="cd" id="pre"><div><b id="pre-d">--</b><span>Days</span></div><div><b id="pre-h">--</b><span>Hours</span></div><div><b id="pre-m">--</b><span>Minutes</span></div><div><b id="pre-s">--</b><span>Seconds</span></div></div></div>
+  </div>
  </section>
  <section class="glass card" id="composer" style="margin-top:16px">
   <div id="note" class="note" hidden></div>
@@ -351,14 +355,18 @@ function palms(){
  L.forEach(([c,n,a,b])=>{h+='<g fill="'+c+'">';for(let i=0;i<n;i++){const ht=H*(a+r()*(b-a)),w=ht*.65,x=r()*(W-w);h+='<use href="#p" x="'+x.toFixed(0)+'" y="'+(H-ht).toFixed(0)+'" width="'+w.toFixed(0)+'" height="'+ht.toFixed(0)+'"/>'}h+='</g>'});
  g.innerHTML=h;
 }
-const GTA=new Date('2026-11-19T00:00:00+13:00').getTime();
-function tick(){
- const d=GTA-Date.now(),z=n=>String(n).padStart(2,'0');
- if(d<=0){clearInterval(cdT);const c=$('cd');if(c)c.outerHTML='<div class="out" id="cd">GTA 6 IS NOW OUT 🌴</div>';$('cdl').textContent='🌴 Welcome to Leonida';return}
- $('cd-d').textContent=Math.floor(d/864e5);$('cd-h').textContent=z(Math.floor(d/36e5)%24);
- $('cd-m').textContent=z(Math.floor(d/6e4)%60);$('cd-s').textContent=z(Math.floor(d/1e3)%60);
+function countdown(p,t,done,lab){
+ const z=n=>String(n).padStart(2,'0');
+ function tick(){
+  const d=t-Date.now();
+  if(d<=0){clearInterval(iv);const c=$(p);if(c)c.outerHTML='<div class="out" id="'+p+'">'+done+'</div>';$(p+'l').textContent=lab;return}
+  $(p+'-d').textContent=Math.floor(d/864e5);$(p+'-h').textContent=z(Math.floor(d/36e5)%24);
+  $(p+'-m').textContent=z(Math.floor(d/6e4)%60);$(p+'-s').textContent=z(Math.floor(d/1e3)%60);
+ }
+ const iv=setInterval(tick,1000);tick();
 }
-const cdT=setInterval(tick,1000);tick();
+countdown('cd',new Date('2026-11-19T00:00:00+13:00').getTime(),'GTA 6 IS NOW OUT 🌴','🌴 Welcome to Leonida');
+countdown('pre',new Date('2026-11-10T00:00:00+13:00').getTime(),'PRELOAD IS NOW LIVE ⬇️','⬇️ Game preload');
 let lastW=innerWidth;palms();addEventListener('resize',()=>{if(innerWidth!==lastW){lastW=innerWidth;palms()}});
 chips();render();
 try{
