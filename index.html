@@ -125,13 +125,15 @@ h3+.cr{border-top:0;padding-top:0}
 .gate{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:4px 2px}
 .who{display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--sub)}.who .av{width:32px;height:32px;font-size:13px}.who b{color:var(--txt)}
 #auth{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#me{display:inline-flex;align-items:center;gap:8px;max-width:200px}#me[hidden]{display:none}#me span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#me .av{width:22px;height:22px;font-size:11px}
+[hidden]{display:none!important}
 </style></head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div>
 <svg class="palms" id="palms" viewBox="0 0 1200 600" preserveAspectRatio="xMinYMax meet" aria-hidden="true"><defs><symbol id="p" viewBox="-20 0 260 400" overflow="visible"><path d="M104 400 Q92 260 112 122 L120 122 Q104 262 118 400Z"/><g id="lf"><path d="M114 122 Q72 52 4 88 Q70 76 114 122Z"/><path d="M114 122 Q86 44 28 38 Q82 62 114 122Z"/><path d="M114 122 Q60 112 14 152 Q72 124 114 122Z"/></g><g transform="translate(228 0) scale(-1 1)"><use href="#lf"/></g><path d="M114 122 Q112 50 118 22 Q124 52 114 122Z"/></symbol></defs>
 <g id="pl"></g>
 </svg>
-<nav class="glass"><span class="logo">JayLu <b>Nation</b></span><span class="sp"></span><button class="pill" id="auth">Log in with Discord</button><button class="pill" id="snd" title="Sound on/off">🔊</button><span class="pill hide-s">🌴 GTA VI Fan Hub</span></nav>
+<nav class="glass"><span class="logo">JayLu <b>Nation</b></span><span class="sp"></span><button class="pill" id="auth">Log in with Discord</button><span class="pill" id="me" hidden></span><button class="pill" id="snd" title="Sound on/off">🔊</button><span class="pill hide-s">🌴 GTA VI Fan Hub</span></nav>
 <div class="wrap">
 <aside class="side">
  <div class="glass card"><h3>About</h3><p style="margin:0;color:var(--sub)">The home for Leonida’s biggest fans. Share screenshots, theories, fan art and memes. Everyone’s welcome.</p></div>
@@ -151,7 +153,7 @@ h3+.cr{border-top:0;padding-top:0}
  <section class="glass card" id="composer" style="margin-top:16px">
   <div id="note" class="note" hidden></div>
   <div id="gate" class="gate"><div>🔒 Log in with Discord to post, like and comment.</div><button class="btn pri" id="gl">Log in with Discord</button></div>
-  <div id="cform" hidden><div class="who" id="who"></div>
+  <div id="cform" hidden><div class="who"><span id="whoi" style="display:flex;align-items:center;gap:10px"></span><button class="btn" id="lo" style="margin-left:auto;padding:6px 14px;min-height:0">Log out</button></div>
   <textarea id="text" rows="3" placeholder="What’s on your mind, Leonida? Paste a YouTube, TikTok, Instagram, Spotify, Vimeo or Twitch link to embed it."></textarea>
   <div id="prev" style="margin-top:10px"></div><div id="eprev"></div>
   <div class="row">
@@ -315,9 +317,9 @@ const avHtml=(n,a)=>'<div class="av">'+(a&&/^https:\/\/cdn\.discordapp\.com\//.t
 function prof(){const m=(user&&user.user_metadata)||{};return{name:((m.custom_claims&&m.custom_claims.global_name)||m.full_name||m.name||(user&&user.email&&user.email.split('@')[0])||'Fan').slice(0,40),avatar:m.avatar_url||m.picture||''}}
 function updateAuth(){
  me=user?user.id:'';const p=prof();
- $('auth').textContent=user?p.name+' · Log out':'Log in with Discord';
+ $('auth').hidden=!!user;$('me').hidden=!user;$('me').innerHTML=user?avHtml(p.name,p.avatar)+'<span>'+esc(p.name)+'</span>':'';
  $('gate').hidden=!!user;$('cform').hidden=!user;
- $('who').innerHTML=user?avHtml(p.name,p.avatar)+'<span>Posting as <b>'+esc(p.name)+'</b></span>':'';
+ $('whoi').innerHTML=user?avHtml(p.name,p.avatar)+'<span>Posting as <b>'+esc(p.name)+'</b></span>':'';
  render();
 }
 async function login(){
@@ -325,7 +327,8 @@ async function login(){
  const r=await sb.auth.signInWithOAuth({provider:'discord',options:{redirectTo:location.origin+location.pathname}});
  if(r.error)note('Couldn’t start login: '+r.error.message);
 }
-$('auth').onclick=async()=>{if(!sb)return;if(user)await sb.auth.signOut();else login()};
+$('auth').onclick=login;
+$('lo').onclick=async()=>{if(sb)await sb.auth.signOut()};
 $('gl').onclick=login;
 $('attach').onclick=()=>$('file').click();
 $('file').onchange=e=>{picked=e.target.files[0]||null;const v=$('prev');v.innerHTML='';if(picked){const u=URL.createObjectURL(picked);v.innerHTML=picked.type.startsWith('video')?`<video class="media" style="max-height:220px" src="${u}" controls></video>`:`<img class="media" style="max-height:220px" src="${u}" alt="">`}};
