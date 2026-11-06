@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>JayLu Nation – GTA VI Fan Page</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E">
 <style>
 :root{--a:#ff3d9a;--b:#ff9a3d;--c:#7a4dff;--d:#18d6e0;--txt:#fff;--sub:rgba(255,255,255,.72);--g1:rgba(255,255,255,.26);--g2:rgba(255,255,255,.07);--edge:rgba(255,255,255,.38);--sh:rgba(40,0,70,.38);--ov:rgba(20,0,40,.25);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ov:rgba(10,0,25,.55);--g1:rgba(255,255,255,.17);--g2:rgba(255,255,255,.04);color-scheme:dark}}
@@ -67,6 +68,7 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
  <section class="glass hero"><h1>Welcome to <span>JayLu Nation</span></h1><p>Leonida is calling. Drop your screenshots, clips, theories and fan art — the whole nation can see it.</p></section>
  <section class="glass card" id="composer" style="margin-top:16px">
   <div id="note" class="note" hidden></div>
+  <input type="text" id="nick" maxlength="30" placeholder="Your nickname" style="margin-bottom:10px">
   <textarea id="text" rows="3" placeholder="What’s on your mind, Leonida?"></textarea>
   <div id="prev" style="margin-top:10px"></div>
   <div class="row">
@@ -82,13 +84,17 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
  <div class="glass card"><h3>Nation stats</h3><div class="stat"><span>Posts</span><b id="s1">0</b></div><div class="stat"><span>Likes</span><b id="s2">0</b></div><div class="stat"><span>Comments</span><b id="s3">0</b></div></div>
 </aside>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+const SB_URL='https://dvvnvefgacwnzohucpyv.supabase.co';
+const SB_KEY='sb_publishable_r7r6IKE2uMinM7iA1mr42Q_kFDZAqae';
 const CATS=['All','Screenshots','Theories','Fan Art','Memes','General'];
-let db=null,assets=null,user=null,uid=null,canEdit=false,filter='All',picked=null;
-let posts=[],likes=[],cmts=[],names={},open=new Set();
+let sb=null,filter='All',picked=null,posts=[],likes=[],cmts=[],open=new Set();
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const nm=u=>names[u]||'Fan';
+const uuid=()=>(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
+let me='anon';
+try{me=localStorage.getItem('jl_id')||'';if(!me){me=uuid();localStorage.setItem('jl_id',me)}$('nick').value=localStorage.getItem('jl_name')||''}catch(e){me=uuid()}
 function ago(t){const s=(Date.now()-t)/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 function note(m){const n=$('note');n.textContent=m;n.hidden=!m}
 function chips(){const h=CATS.map(c=>`<button class="chip ${c===filter?'on':''}" data-c="${c}">${c}</button>`).join('');$('chips').innerHTML=h;$('side-chips').innerHTML=h}
@@ -98,63 +104,64 @@ function render(){
  $('s1').textContent=posts.length;$('s2').textContent=likes.length;$('s3').textContent=cmts.length;
  if(!list.length){$('feed').innerHTML='<div class="glass empty">Nothing here yet. Be the first to post! 🌴</div>';return}
  $('feed').innerHTML=list.map(p=>{
-  const L=likes.filter(l=>l.p===p.id),mine=L.some(l=>l.u===uid),C=cmts.filter(c=>c.p===p.id).sort((a,b)=>a.ts-b.ts);
+  const L=likes.filter(l=>l.post_id===p.id),mine=L.some(l=>l.voter===me),C=cmts.filter(c=>c.post_id===p.id);
   const med=p.media?(p.mt==='video'?`<video class="media" src="${esc(p.media)}" controls playsinline></video>`:`<img class="media" src="${esc(p.media)}" alt="">`):'';
-  const del=(p.uid===uid||canEdit)?`<button class="act" style="flex:none;padding:4px 10px" data-del="${esc(p.id)}" title="Delete">🗑</button>`:'';
-  return `<article class="glass post"><div class="hd"><div class="av">${esc(nm(p.uid)[0]||'F').toUpperCase()}</div><div><b>${esc(nm(p.uid))}</b><small>${ago(p.ts)}</small></div><span class="sp"></span><span class="tag">${esc(p.cat)}</span>${del}</div>
+  return `<article class="glass post"><div class="hd"><div class="av">${esc((p.name||'F')[0]).toUpperCase()}</div><div><b>${esc(p.name)}</b><small>${ago(new Date(p.created_at).getTime())}</small></div><span class="sp"></span><span class="tag">${esc(p.cat)}</span></div>
   ${p.text?`<div class="txt">${esc(p.text)}</div>`:''}${med}
   <div class="acts"><button class="act ${mine?'liked':''}" data-like="${esc(p.id)}">${mine?'⭐':'☆'} ${L.length||''} Like</button><button class="act" data-cm="${esc(p.id)}">💬 ${C.length||''} Comment</button></div>
-  ${open.has(p.id)?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(nm(c.u))}</b>${esc(c.t)}</div>`).join('')}<input type="text" placeholder="Write a comment and press Enter" data-in="${esc(p.id)}"></div>`:''}</article>`}).join('');
+  ${open.has(p.id)?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join('')}<input type="text" placeholder="Write a comment and press Enter" data-in="${esc(p.id)}"></div>`:''}</article>`}).join('');
 }
-async function resolveNames(){
- if(!user||!user.profiles)return;
- const ids=[...new Set([...posts.map(p=>p.uid),...cmts.map(c=>c.u)])].filter(u=>u&&!(u in names));
- if(!ids.length)return;
- try{const ps=await user.profiles(ids);ids.forEach(i=>names[i]=(ps[i]&&ps[i].name)||'Fan');render()}catch(e){ids.forEach(i=>names[i]='Fan')}
+async function load(){
+ if(!sb)return;
+ const [p,l,c]=await Promise.all([
+  sb.from('posts').select('*').order('created_at',{ascending:false}).limit(100),
+  sb.from('likes').select('post_id,voter'),
+  sb.from('comments').select('*').order('created_at',{ascending:true})]);
+ if(p.error){note('Couldn’t load posts: '+p.error.message);return}
+ posts=p.data||[];likes=l.data||[];cmts=c.data||[];
+ const a=document.activeElement;if(a&&a.dataset&&a.dataset.in)return;
+ render();
 }
-const uuid=()=>(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
-$('attach').onclick=()=>{if(!assets){note('Uploads need Contributor access — ask the page owner to share it with you as a Contributor.');return}$('file').click()};
+$('nick').onchange=()=>{try{localStorage.setItem('jl_name',$('nick').value.trim())}catch(e){}};
+$('attach').onclick=()=>$('file').click();
 $('file').onchange=e=>{picked=e.target.files[0]||null;const v=$('prev');v.innerHTML='';if(picked){const u=URL.createObjectURL(picked);v.innerHTML=picked.type.startsWith('video')?`<video class="media" style="max-height:220px" src="${u}" controls></video>`:`<img class="media" style="max-height:220px" src="${u}" alt="">`}};
 $('post').onclick=async()=>{
- if(!db){note('Posting isn’t available here yet. Open the published page while signed in to claude.ai.');return}
+ if(!sb){note('Couldn’t connect to the server.');return}
  const text=$('text').value.trim();if(!text&&!picked)return;
+ if(picked&&picked.size>45*1024*1024){note('That file is too big (45 MB max).');return}
  const b=$('post');b.disabled=true;b.textContent='Posting…';
  try{
   let media='',mt='';
-  if(picked){const r=await assets.upload(picked);media=r.url;mt=picked.type.startsWith('video')?'video':'image'}
-  await db.collection('posts').doc(uuid()).set({text,cat:$('cat').value,uid,ts:Date.now(),media,mt});
+  if(picked){
+   const path=me+'/'+Date.now()+'-'+picked.name.replace(/[^\w.\-]/g,'_');
+   const up=await sb.storage.from('uploads').upload(path,picked,{contentType:picked.type});
+   if(up.error)throw up.error;
+   media=sb.storage.from('uploads').getPublicUrl(path).data.publicUrl;mt=picked.type.startsWith('video')?'video':'image';
+  }
+  const name=$('nick').value.trim()||'Fan';
+  const r=await sb.from('posts').insert({name,text,cat:$('cat').value,media,mt});
+  if(r.error)throw r.error;
   $('text').value='';picked=null;$('file').value='';$('prev').innerHTML='';note('');
+  await load();
  }catch(e){note('Couldn’t post: '+(e&&e.message||'unknown error'))}
  b.disabled=false;b.textContent='Post';
 };
 document.addEventListener('click',async e=>{
- const t=e.target.closest('[data-like],[data-cm],[data-del]');if(!t||!db)return;
+ const t=e.target.closest('[data-like],[data-cm]');if(!t||!sb)return;
  try{
-  if(t.dataset.like){const id=t.dataset.like+'_'+uid,r=db.collection('likes').doc(id);likes.some(l=>l.id===id)?await r.delete():await r.set({p:t.dataset.like,u:uid})}
-  else if(t.dataset.cm){const i=t.dataset.cm;open.has(i)?open.delete(i):open.add(i);render()}
-  else if(t.dataset.del&&confirm('Delete this post?')){await db.collection('posts').doc(t.dataset.del).delete()}
- }catch(err){note('Action failed: '+(err&&err.message||'not allowed'))}
+  if(t.dataset.like){
+   const id=t.dataset.like,liked=likes.some(l=>l.post_id===id&&l.voter===me);
+   const r=liked?await sb.from('likes').delete().eq('post_id',id).eq('voter',me):await sb.from('likes').insert({post_id:id,voter:me});
+   if(r.error)throw r.error;await load();
+  }else{const i=t.dataset.cm;open.has(i)?open.delete(i):open.add(i);render()}
+ }catch(err){note('Action failed: '+(err&&err.message||'unknown error'))}
 });
 document.addEventListener('keydown',async e=>{
- const i=e.target.dataset&&e.target.dataset.in;if(!i||e.key!=='Enter'||!e.target.value.trim()||!db)return;
- const t=e.target.value.trim();e.target.value='';
- try{await db.collection('comments').doc(uuid()).set({p:i,u:uid,t,ts:Date.now()})}catch(err){note('Couldn’t comment: '+(err&&err.message||'not allowed'))}
+ const i=e.target.dataset&&e.target.dataset.in;if(!i||e.key!=='Enter'||!e.target.value.trim()||!sb)return;
+ const body=e.target.value.trim();e.target.value='';
+ try{const r=await sb.from('comments').insert({post_id:i,name:$('nick').value.trim()||'Fan',body});if(r.error)throw r.error;const a=document.activeElement;if(a)a.blur();await load()}
+ catch(err){note('Couldn’t comment: '+(err&&err.message||'unknown error'))}
 });
-const snap=(col,set)=>{const q=db.collection(col);(q.limit?q.limit(500):q).onSnapshot(s=>{set(s.docs.map(d=>({id:d.id,...d.data()})));render();resolveNames()},()=>{})};
-async function init(){
- chips();render();
- try{
-  const c=window.claude;
-  if(c){db=await c.use('db');assets=await c.use('assets');user=await c.use('user')}
-  if(user){uid=await user.id();try{canEdit=await user.canEdit()}catch(e){}}
- }catch(e){}
- if(!db){$('feed').innerHTML='<div class="glass empty">The live feed loads when this page is opened from its published link while signed in.</div>';note('Preview mode — posting is disabled.');return}
- if(!assets)$('attach').style.opacity='.5';
- const q=db.collection('posts').orderBy('ts','desc').limit(100);
- q.onSnapshot(s=>{posts=s.docs.map(d=>({id:d.id,...d.data()}));render();resolveNames()},()=>note('Couldn’t load posts.'));
- snap('likes',v=>likes=v);snap('comments',v=>cmts=v);
- setTimeout(()=>{if(!posts.length&&$('feed').textContent.includes('Loading'))render()},10000);
-}
 function palms(){
  const W=innerWidth,H=Math.round(innerHeight*.75),svg=$('palms'),g=$('pl');
  svg.setAttribute('viewBox','0 0 '+W+' '+H);
@@ -165,6 +172,12 @@ function palms(){
  g.innerHTML=h;
 }
 palms();addEventListener('resize',palms);
-init();
+chips();render();
+try{
+ sb=window.supabase.createClient(SB_URL,SB_KEY);
+ load();
+ sb.channel('jl').on('postgres_changes',{event:'*',schema:'public'},()=>load()).subscribe();
+ setInterval(load,30000);
+}catch(e){note('Couldn’t connect to the server.')}
 </script>
 </body></html>
