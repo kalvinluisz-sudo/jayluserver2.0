@@ -336,7 +336,8 @@ $('post').onclick=async()=>{
  if(!sb){note('Couldn’t connect to the server.');return}
  if(!user){note('Log in with Discord to post.');return}
  const text=$('text').value.trim();if(!text&&!picked)return;
- if(picked&&picked.size>45*1024*1024){note('That file is too big (45 MB max).');return}
+ if(picked&&!/^(image\/(png|jpe?g|gif|webp)|video\/(mp4|webm|quicktime))$/.test(picked.type)){note('Couldn’t use that file: only PNG, JPG, GIF, WebP, MP4, MOV or WebM are allowed.');return}
+ if(picked&&picked.size>25*1024*1024){note('That file is too big (25 MB max).');return}
  const b=$('post');b.disabled=true;b.textContent='Posting…';
  try{
   let media='',mt='';
