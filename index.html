@@ -20,7 +20,8 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-padding-top:76px}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:76px;scroll-behavior:smooth}
+.menu{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 body{margin:0;min-height:100vh;background:var(--dusk);color:var(--paper);font:16px/1.55 var(--text);-webkit-font-smoothing:antialiased;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 h1,h2,p{margin:0}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -104,7 +105,8 @@ select.field option{background:var(--panel);color:var(--paper)}
 .feed{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-l);overflow:hidden}
 .feed>*+*{border-top:1px solid var(--line)}
 .state{padding:28px 20px;text-align:center;color:var(--muted)}
-.post{padding:18px 16px}
+.post{padding:18px 16px;transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1);will-change:opacity,transform}
+.post.pre{opacity:0;transform:translateY(36px) scale(.985)}
 .hd{display:flex;align-items:center;gap:12px}
 .hd .meta{flex:1;min-width:0}
 .hd b{display:block;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
@@ -451,23 +453,32 @@ function more(){
  const list=posts.filter(p=>filter==='All'||p.cat===filter),prev=shown;shown+=6;
  const m=$('more');if(m){io.unobserve(m);m.remove()}
  $('feed').insertAdjacentHTML('beforeend',list.slice(prev,shown).map(card).join('')+tail(list.length));
- watch();
+ watch();reveal();
 }
 function card(p){
   const L=likes.filter(l=>l.post_id===p.id),mine=L.some(l=>l.voter===me),C=cmts.filter(c=>c.post_id===p.id);
   const R=rich(p.text||''),own=p.user_id&&p.user_id===me,isOpen=open.has(p.id);
   const med=p.media?(p.mt==='video'?`<video class="media" src="${esc(p.media)}" controls playsinline></video>`:`<img class="media" src="${esc(p.media)}" alt="">`):'';
   const thread=isOpen?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join('')}${user?`<input class="field" type="text" placeholder="Write a comment and press Enter" aria-label="Write a comment" data-in="${esc(p.id)}">`:'<p class="hint">Log in with Discord to comment.</p>'}</div>`:'';
-  return `<article class="post"><header class="hd">${avDot(p.name,p.avatar,p.user_id)}<div class="meta"><b>${esc(p.name)}</b><time>${ago(new Date(p.created_at).getTime())}</time></div><span class="cat">${esc(p.cat)}</span>${own?`<button class="ibtn" type="button" data-del="${esc(p.id)}" title="Delete your post" aria-label="Delete your post">${ic('trash')}</button>`:''}</header>
+  return `<article class="post" data-id="${esc(p.id)}"><header class="hd">${avDot(p.name,p.avatar,p.user_id)}<div class="meta"><b>${esc(p.name)}</b><time>${ago(new Date(p.created_at).getTime())}</time></div><span class="cat">${esc(p.cat)}</span>${own?`<button class="ibtn" type="button" data-del="${esc(p.id)}" title="Delete your post" aria-label="Delete your post">${ic('trash')}</button>`:''}</header>
   ${p.text?`<div class="txt">${R.out}</div>`:''}${R.embeds}${med}
   <div class="acts"><button class="act${mine?' liked':''}" type="button" data-like="${esc(p.id)}" aria-pressed="${mine}">${ic(mine?'heart-fill':'heart')}Like${L.length?' '+L.length:''}</button><button class="act" type="button" data-cm="${esc(p.id)}" aria-expanded="${isOpen}">${ic('chat')}Comment${C.length?' '+C.length:''}</button></div>
   ${thread}</article>`}
+const seenP=new Set();
+const rvio='IntersectionObserver' in window?new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('pre');seenP.add(e.target.dataset.id);rvio.unobserve(e.target)}})},{rootMargin:'0px 0px -6% 0px',threshold:.04}):null;
+function reveal(){
+ if(!rvio)return;
+ document.querySelectorAll('.post[data-id]').forEach(el=>{
+  if(seenP.has(el.dataset.id))return;
+  el.classList.add('pre');rvio.observe(el);
+ });
+}
 function render(){
  chips();
  const list=posts.filter(p=>filter==='All'||p.cat===filter);
  if(!list.length){$('feed').innerHTML='<div class="state">No posts in this topic yet. Be the first to post.</div>';return}
  $('feed').innerHTML=list.slice(0,shown).map(card).join('')+tail(list.length);
- watch();
+ watch();reveal();
 }
 async function load(){
  if(!sb)return;
