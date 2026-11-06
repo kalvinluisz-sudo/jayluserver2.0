@@ -263,7 +263,7 @@ html.lock{overflow:hidden}
       <textarea class="field" id="text" rows="3" aria-label="Post text" placeholder="What’s on your mind, Leonida? Paste a YouTube, TikTok, Instagram, Spotify, Vimeo or Twitch link to embed it."></textarea>
       <div id="prev"></div><div id="eprev"></div>
       <div class="row">
-        <select class="field" id="cat" aria-label="Topic"><option>General</option><option>Screenshots</option><option>Theories</option><option>Fan Art</option><option>Memes</option></select>
+        <select class="field" id="cat" aria-label="Topic"><option>General</option><option>JayLu</option><option>Screenshots</option><option>Theories</option><option>Fan Art</option><option>Memes</option></select>
         <button class="btn" id="attach" type="button"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>Photo or video</button><input class="file" id="file" type="file" accept="image/*,video/*" aria-label="Choose a photo or video">
         <button class="btn pri push" id="post" type="button">Post</button>
       </div>
@@ -301,7 +301,7 @@ html.lock{overflow:hidden}
 <script>
 const SB_URL='https://dvvnvefgacwnzohucpyv.supabase.co';
 const SB_KEY='sb_publishable_r7r6IKE2uMinM7iA1mr42Q_kFDZAqae';
-const CATS=['General','All','Screenshots','Theories','Fan Art','Memes'];
+const CATS=['General','JayLu','All','Screenshots','Theories','Fan Art','Memes'];
 let lastSig='',lastEm='',sb=null,filter='General',picked=null,posts=[],likes=[],cmts=[],open=new Set();
 const $=id=>document.getElementById(id);
 const ic=n=>'<svg class="i" aria-hidden="true"><use href="#i-'+n+'"/></svg>';
