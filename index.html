@@ -52,6 +52,9 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
 .empty,.note{text-align:center;color:var(--sub);padding:24px}.note{padding:10px;font-size:13px;margin-bottom:12px;border-radius:14px;background:rgba(255,255,255,.14)}
 .stat{display:flex;justify-content:space-between;padding:6px 0}.stat b{font-size:20px}
 .file{display:none}
+.embed{display:block;width:100%;border:1px solid var(--edge);border-radius:18px;margin:10px auto 0;background:rgba(0,0,0,.3)}
+.txt a{color:#ffd1ec;text-decoration:underline;word-break:break-all}
+#eprev small{display:block;color:var(--sub);margin:8px 0 0}
 </style></head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div>
@@ -69,8 +72,8 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
  <section class="glass card" id="composer" style="margin-top:16px">
   <div id="note" class="note" hidden></div>
   <input type="text" id="nick" maxlength="30" placeholder="Your nickname" style="margin-bottom:10px">
-  <textarea id="text" rows="3" placeholder="What’s on your mind, Leonida?"></textarea>
-  <div id="prev" style="margin-top:10px"></div>
+  <textarea id="text" rows="3" placeholder="What’s on your mind, Leonida? Paste a YouTube, TikTok, Instagram, Spotify, Vimeo or Twitch link to embed it."></textarea>
+  <div id="prev" style="margin-top:10px"></div><div id="eprev"></div>
   <div class="row">
    <select id="cat" style="width:auto"><option>Screenshots</option><option>Theories</option><option>Fan Art</option><option>Memes</option><option>General</option></select>
    <button class="btn" id="attach">📷 Photo / Video</button><input class="file" id="file" type="file" accept="image/*,video/*">
@@ -89,7 +92,7 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
 const SB_URL='https://dvvnvefgacwnzohucpyv.supabase.co';
 const SB_KEY='sb_publishable_r7r6IKE2uMinM7iA1mr42Q_kFDZAqae';
 const CATS=['All','Screenshots','Theories','Fan Art','Memes','General'];
-let sb=null,filter='All',picked=null,posts=[],likes=[],cmts=[],open=new Set();
+let lastSig='',lastEm='',sb=null,filter='All',picked=null,posts=[],likes=[],cmts=[],open=new Set();
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uuid=()=>(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
@@ -99,15 +102,51 @@ function ago(t){const s=(Date.now()-t)/1000;if(s<60)return'just now';if(s<3600)r
 function note(m){const n=$('note');n.textContent=m;n.hidden=!m}
 function chips(){const h=CATS.map(c=>`<button class="chip ${c===filter?'on':''}" data-c="${c}">${c}</button>`).join('');$('chips').innerHTML=h;$('side-chips').innerHTML=h}
 document.addEventListener('click',e=>{const c=e.target.closest('[data-c]');if(c){filter=c.dataset.c;chips();render()}});
+const URLRE=/https?:\/\/[^\s<>"']+/g;
+function embedFor(u){
+ let m;
+ if(m=u.match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/i))return{src:'https://www.youtube-nocookie.com/embed/'+m[1],h:'aspect-ratio:16/9'};
+ if(m=u.match(/^https?:\/\/(?:www\.)?vimeo\.com\/(\d+)/i))return{src:'https://player.vimeo.com/video/'+m[1],h:'aspect-ratio:16/9'};
+ if(m=u.match(/^https?:\/\/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/i))return{src:'https://open.spotify.com/embed/'+m[1].toLowerCase()+'/'+m[2],h:/^(track|episode)$/i.test(m[1])?'height:152px':'height:352px'};
+ if(m=u.match(/^https?:\/\/(?:www\.)?tiktok\.com\/@[\w.\-]+\/video\/(\d+)/i))return{src:'https://www.tiktok.com/embed/v2/'+m[1],h:'height:740px;max-width:340px'};
+ if(m=u.match(/^https?:\/\/(?:www\.)?instagram\.com\/(p|reel)\/([\w-]+)/i))return{src:'https://www.instagram.com/'+m[1].toLowerCase()+'/'+m[2]+'/embed',h:'height:620px;max-width:400px'};
+ if(m=u.match(/^https?:\/\/(?:www\.)?twitch\.tv\/videos\/(\d+)/i))return{src:'https://player.twitch.tv/?video='+m[1]+'&parent='+location.hostname,h:'aspect-ratio:16/9'};
+ if(m=u.match(/^https?:\/\/clips\.twitch\.tv\/([\w-]+)/i))return{src:'https://clips.twitch.tv/embed?clip='+m[1]+'&parent='+location.hostname,h:'aspect-ratio:16/9'};
+ if(/^https:\/\/[^\s]+\.(?:png|jpe?g|gif|webp)(?:\?[^\s]*)?$/i.test(u))return{img:u};
+ if(/^https:\/\/[^\s]+\.(?:mp4|webm)(?:\?[^\s]*)?$/i.test(u))return{vid:u};
+ return null;
+}
+function embedHtml(e){
+ if(e.img)return `<img class="media" style="margin-top:10px" src="${esc(e.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+ if(e.vid)return `<video class="media" style="margin-top:10px" src="${esc(e.vid)}" controls playsinline preload="metadata"></video>`;
+ return `<iframe class="embed" style="${e.h}" src="${esc(e.src)}" loading="lazy" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"></iframe>`;
+}
+function rich(t){
+ let out='',last=0,embeds='',n=0,seen={},m;
+ URLRE.lastIndex=0;
+ while((m=URLRE.exec(t))){
+  const u=m[0].replace(/[.,!?)\]]+$/,'');
+  out+=esc(t.slice(last,m.index))+'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer nofollow">'+esc(u)+'</a>';
+  last=m.index+u.length;URLRE.lastIndex=last;
+  if(!seen[u]&&n<3){seen[u]=1;const e=embedFor(u);if(e){embeds+=embedHtml(e);n++}}
+ }
+ return{out:out+esc(t.slice(last)),embeds};
+}
+$('text').addEventListener('input',()=>{
+ const e=rich($('text').value).embeds;
+ if(e===lastEm)return;lastEm=e;
+ $('eprev').innerHTML=e?'<small>Embed preview</small>'+e:'';
+});
 function render(){
  const list=posts.filter(p=>filter==='All'||p.cat===filter);
  $('s1').textContent=posts.length;$('s2').textContent=likes.length;$('s3').textContent=cmts.length;
  if(!list.length){$('feed').innerHTML='<div class="glass empty">Nothing here yet. Be the first to post! 🌴</div>';return}
  $('feed').innerHTML=list.map(p=>{
   const L=likes.filter(l=>l.post_id===p.id),mine=L.some(l=>l.voter===me),C=cmts.filter(c=>c.post_id===p.id);
+  const R=rich(p.text||'');
   const med=p.media?(p.mt==='video'?`<video class="media" src="${esc(p.media)}" controls playsinline></video>`:`<img class="media" src="${esc(p.media)}" alt="">`):'';
   return `<article class="glass post"><div class="hd"><div class="av">${esc((p.name||'F')[0]).toUpperCase()}</div><div><b>${esc(p.name)}</b><small>${ago(new Date(p.created_at).getTime())}</small></div><span class="sp"></span><span class="tag">${esc(p.cat)}</span></div>
-  ${p.text?`<div class="txt">${esc(p.text)}</div>`:''}${med}
+  ${p.text?`<div class="txt">${R.out}</div>`:''}${R.embeds}${med}
   <div class="acts"><button class="act ${mine?'liked':''}" data-like="${esc(p.id)}">${mine?'⭐':'☆'} ${L.length||''} Like</button><button class="act" data-cm="${esc(p.id)}">💬 ${C.length||''} Comment</button></div>
   ${open.has(p.id)?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join('')}<input type="text" placeholder="Write a comment and press Enter" data-in="${esc(p.id)}"></div>`:''}</article>`}).join('');
 }
@@ -119,8 +158,9 @@ async function load(){
   sb.from('comments').select('*').order('created_at',{ascending:true})]);
  if(p.error){note('Couldn’t load posts: '+p.error.message);return}
  posts=p.data||[];likes=l.data||[];cmts=c.data||[];
+ const sig=JSON.stringify([posts,likes,cmts]);if(sig===lastSig)return;
  const a=document.activeElement;if(a&&a.dataset&&a.dataset.in)return;
- render();
+ lastSig=sig;render();
 }
 $('nick').onchange=()=>{try{localStorage.setItem('jl_name',$('nick').value.trim())}catch(e){}};
 $('attach').onclick=()=>$('file').click();
@@ -141,7 +181,7 @@ $('post').onclick=async()=>{
   const name=$('nick').value.trim()||'Fan';
   const r=await sb.from('posts').insert({name,text,cat:$('cat').value,media,mt});
   if(r.error)throw r.error;
-  $('text').value='';picked=null;$('file').value='';$('prev').innerHTML='';note('');
+  $('text').value='';picked=null;$('file').value='';$('prev').innerHTML='';$('eprev').innerHTML='';lastEm='';note('');
   await load();
  }catch(e){note('Couldn’t post: '+(e&&e.message||'unknown error'))}
  b.disabled=false;b.textContent='Post';
