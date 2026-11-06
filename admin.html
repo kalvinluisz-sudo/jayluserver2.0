@@ -55,6 +55,7 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,2
 .file{display:none}
 </style></head>
 <body>
+<svg class="palms" id="city" preserveAspectRatio="xMinYMax meet" aria-hidden="true"></svg>
 <nav class="glass"><span class="logo">JayLu <b>Nation</b></span><span class="pill">🔒 Admin</span><span class="sp"></span><button class="btn" id="out" hidden>Sign out</button></nav>
 <div style="max-width:820px;margin:16px auto 60px;padding:0 10px;display:grid;gap:16px">
  <div id="note" class="note" hidden></div>
@@ -129,6 +130,24 @@ $('in').onclick=async()=>{
 };
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('in').click()});
 $('out').onclick=async()=>{await sb.auth.signOut();posts=[];cmts=[];show(false)};
+function city(){
+ const W=innerWidth,H=Math.round(innerHeight*.75),svg=$('city');
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);
+ let s=11;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+ const cols=['#E2CDFA','#E2CDFA','#E2CDFA'];let h='';
+ [['#3c2a52',.22,.5,36,80,0],['#170d26',.28,.85,46,110,1]].forEach(([c,a,b,wa,wb,win])=>{
+  let g='<g fill="'+c+'">',wd='<g opacity=".85">';
+  for(let x=0;x<W;){
+   const w=Math.min(wa+r()*(wb-wa),W-x),ht=H*(a+r()*(b-a)),top=H-ht;
+   g+='<rect x="'+x.toFixed(0)+'" y="'+top.toFixed(0)+'" width="'+w.toFixed(0)+'" height="'+ht.toFixed(0)+'"/>';
+   if(win)for(let wy=top+12;wy<H-8;wy+=14)for(let wx=x+8;wx<x+w-12;wx+=12)if(r()<.2)wd+='<rect x="'+wx.toFixed(0)+'" y="'+wy.toFixed(0)+'" width="5" height="7" fill="'+cols[Math.floor(r()*3)]+'"/>';
+   x+=w+r()*4;
+  }
+  h+=g+'</g>'+(win?wd+'</g>':'');
+ });
+ svg.innerHTML=h;
+}
+city();addEventListener('resize',city);
 sb.auth.getSession().then(({data})=>show(!!data.session));
 </script>
 </body></html>
