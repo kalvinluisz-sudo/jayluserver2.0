@@ -39,27 +39,27 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(139,92,24
 .btn:hover{background:rgba(139,92,246,0.28)}.btn.pri{background:linear-gradient(135deg,var(--a),var(--b));border-color:transparent;box-shadow:0 6px 20px rgba(139,92,246,.5)}
 .btn:disabled{opacity:.5;cursor:default}
 #feed{display:grid;gap:16px;margin-top:16px}
-@media(min-width:1500px){#feed{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}#feed>.empty{grid-column:1/-1}}
+.end{text-align:center;color:var(--sub);padding:18px}
 .post{padding:16px}.hd{display:flex;gap:10px;align-items:center}
 .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:linear-gradient(135deg,var(--d),var(--c));border:1px solid var(--edge);flex:none}
 .hd small{color:var(--sub);display:block;font-size:12px}.hd .sp{flex:1}
 .tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(139,92,246,0.16)}
 .txt{margin:12px 0;white-space:pre-wrap;word-break:break-word}
-.media{display:block;width:100%;max-height:520px;object-fit:cover;border-radius:18px;border:1px solid var(--edge)}
+.media{display:block;width:100%;max-height:680px;object-fit:contain;background:#08040f;border-radius:18px;border:1px solid var(--edge)}
 .acts{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--edge);padding-top:10px}
 .act{flex:1;background:transparent;border:0;padding:8px;border-radius:12px;font-weight:600}.act:hover{background:rgba(139,92,246,0.12)}.act.liked{color:#c4b5fd}
 .cm{margin-top:10px;display:grid;gap:8px}.c{background:rgba(139,92,246,0.1);border-radius:14px;padding:8px 12px;font-size:14px}.c b{margin-right:6px}
 .empty,.note{text-align:center;color:var(--sub);padding:24px}.note{padding:10px;font-size:13px;margin-bottom:12px;border-radius:14px;background:rgba(139,92,246,0.09)}
 .stat{display:flex;justify-content:space-between;padding:6px 0}.stat b{font-size:20px}
 .file{display:none}
-.embed{display:block;width:100%;border:1px solid var(--edge);border-radius:18px;margin:10px auto 0;background:rgba(0,0,0,.3)}
+.embed{display:block;width:100%;max-width:960px;border:1px solid var(--edge);border-radius:18px;margin:10px auto 0;background:rgba(0,0,0,.3)}
 .txt a{color:#c4b5fd;text-decoration:underline;word-break:break-all}
 #eprev small{display:block;color:var(--sub);margin:8px 0 0}
 .ann{max-width:1680px;width:calc(100% - 20px);margin:10px auto 0;padding:10px 46px 10px 18px;border-radius:18px;text-align:center;font-weight:600;font-size:14px}
 .ann[hidden]{display:none}
 .ann button{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:0;font-size:18px;z-index:2;padding:4px 8px}
 .slider{display:flex;align-items:center;gap:8px;margin-top:16px}
-.track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;flex:1;padding:4px 2px}
+.track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;flex:1;padding:16px 14px;margin:-12px 0}
 .track::-webkit-scrollbar{display:none}
 .tile{flex:0 0 auto;scroll-snap-align:start;min-width:150px;padding:14px 16px;border-radius:16px;border:1px solid var(--edge);background:var(--card);text-align:left;font-weight:700;transition:.2s}
 .tile span{display:block;font-size:26px;margin-bottom:4px}.tile small{display:block;color:var(--sub);font-weight:500;font-size:12px}
@@ -131,7 +131,7 @@ async function loadAnn(){
  }catch(e){}
 }
 $('annx').onclick=()=>{try{localStorage.setItem('jl_ann',$('ann').dataset.t||'')}catch(e){}$('ann').hidden=true};
-document.addEventListener('click',e=>{const c=e.target.closest('[data-c]');if(c){filter=c.dataset.c;chips();render()}});
+document.addEventListener('click',e=>{const c=e.target.closest('[data-c]');if(c){filter=c.dataset.c;shown=8;chips();render()}});
 const URLRE=/https?:\/\/[^\s<>"']+/g;
 function embedFor(u){
  let m;
@@ -167,19 +167,32 @@ $('text').addEventListener('input',()=>{
  if(e===lastEm)return;lastEm=e;
  $('eprev').innerHTML=e?'<small>Embed preview</small>'+e:'';
 });
-function render(){
- chips();
- const list=posts.filter(p=>filter==='All'||p.cat===filter);
- $('s1').textContent=posts.length;$('s2').textContent=likes.length;$('s3').textContent=cmts.length;
- if(!list.length){$('feed').innerHTML='<div class="glass empty">Nothing here yet. Be the first to post! 🌴</div>';return}
- $('feed').innerHTML=list.map(p=>{
+let shown=8;
+const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))more()},{rootMargin:'700px'});
+const tail=n=>n>shown?'<div id="more" class="glass empty">Loading more…</div>':'<div class="end">You’re all caught up 🌴</div>';
+function watch(){const m=$('more');if(m)io.observe(m)}
+function more(){
+ const list=posts.filter(p=>filter==='All'||p.cat===filter),prev=shown;shown+=6;
+ const m=$('more');if(m){io.unobserve(m);m.remove()}
+ $('feed').insertAdjacentHTML('beforeend',list.slice(prev,shown).map(card).join('')+tail(list.length));
+ watch();
+}
+function card(p){
   const L=likes.filter(l=>l.post_id===p.id),mine=L.some(l=>l.voter===me),C=cmts.filter(c=>c.post_id===p.id);
   const R=rich(p.text||'');
   const med=p.media?(p.mt==='video'?`<video class="media" src="${esc(p.media)}" controls playsinline></video>`:`<img class="media" src="${esc(p.media)}" alt="">`):'';
   return `<article class="glass post"><div class="hd"><div class="av">${esc((p.name||'F')[0]).toUpperCase()}</div><div><b>${esc(p.name)}</b><small>${ago(new Date(p.created_at).getTime())}</small></div><span class="sp"></span><span class="tag">${esc(p.cat)}</span></div>
   ${p.text?`<div class="txt">${R.out}</div>`:''}${R.embeds}${med}
   <div class="acts"><button class="act ${mine?'liked':''}" data-like="${esc(p.id)}">${mine?'⭐':'☆'} ${L.length||''} Like</button><button class="act" data-cm="${esc(p.id)}">💬 ${C.length||''} Comment</button></div>
-  ${open.has(p.id)?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join('')}<input type="text" placeholder="Write a comment and press Enter" data-in="${esc(p.id)}"></div>`:''}</article>`}).join('');
+  ${open.has(p.id)?`<div class="cm">${C.map(c=>`<div class="c"><b>${esc(c.name)}</b>${esc(c.body)}</div>`).join('')}<input type="text" placeholder="Write a comment and press Enter" data-in="${esc(p.id)}"></div>`:''}</article>`}
+function render(){
+ chips();
+ const list=posts.filter(p=>filter==='All'||p.cat===filter);
+ $('s1').textContent=posts.length;$('s2').textContent=likes.length;$('s3').textContent=cmts.length;
+ if(!list.length){$('feed').innerHTML='<div class="glass empty">Nothing here yet. Be the first to post! 🌴</div>';return}
+ const feed=$('feed');
+ feed.innerHTML=list.slice(0,shown).map(card).join('')+tail(list.length);
+ watch();
 }
 async function load(){
  if(!sb)return;
