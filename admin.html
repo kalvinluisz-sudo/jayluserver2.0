@@ -71,7 +71,7 @@ textarea:focus,input:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(139,92,24
  </section>
  <div id="dash" hidden style="display:grid;gap:16px">
   <section class="glass card"><div style="display:flex;gap:30px;flex-wrap:wrap"><div><small style="color:var(--sub)">Posts</small><div class="stat"><b id="a1">0</b></div></div><div><small style="color:var(--sub)">Comments</small><div class="stat"><b id="a2">0</b></div></div><div><small style="color:var(--sub)">Likes</small><div class="stat"><b id="a3">0</b></div></div></div></section>
-  <section class="glass card"><h3>Announcement banner</h3><textarea id="annin" rows="2" maxlength="300" placeholder="Shown at the top of the site, e.g. “Trailer 3 drops Friday!”"></textarea><div class="row"><span class="sp"></span><button class="btn" id="annclr">Clear</button><button class="btn pri" id="annsave">Publish</button></div></section>
+  <section class="glass card"><h3>Announcements (shown on the site’s sides)</h3><textarea id="annin" rows="2" maxlength="300" placeholder="Write an announcement, e.g. “Trailer 3 drops Friday!”"></textarea><div class="row"><span class="sp"></span><button class="btn pri" id="annsave">Post announcement</button></div><div id="annlist"></div></section>
   <div class="chips"><button class="chip on" data-t="posts">Posts</button><button class="chip" data-t="comments">Comments</button><button class="chip" id="rf">↻ Refresh</button></div>
   <div id="list" style="display:grid;gap:16px"></div>
  </div>
@@ -93,7 +93,7 @@ async function load(){
   sb.from('likes').select('id',{count:'exact',head:true})]);
  if(p.error){note('Couldn’t load: '+p.error.message);return}
  posts=p.data||[];cmts=c.data||[];nLikes=l.count||0;render();
- sb.from('settings').select('value').eq('key','announcement').maybeSingle().then(r=>{if(r.data)$('annin').value=r.data.value||''});
+ sb.from('settings').select('value').eq('key','announcement').maybeSingle().then(r=>{anns=parseAnn((r.data&&r.data.value)||'');renderAnn()});
 }
 function render(){
  $('a1').textContent=posts.length;$('a2').textContent=cmts.length;$('a3').textContent=nLikes;
@@ -134,16 +134,21 @@ $('in').onclick=async()=>{
  if(r.error){note('Sign in failed: '+r.error.message);return}
  $('pw').value='';note('');show(true);
 };
-async function saveAnn(v){
+let anns=[];
+function parseAnn(v){try{const x=JSON.parse(v);if(Array.isArray(x))return x}catch(e){}return v?[{t:v,ts:0}]:[]}
+function renderAnn(){
+ $('annlist').innerHTML=anns.length?anns.map((x,i)=>`<div class="c" style="margin-top:10px;display:flex;gap:10px;align-items:flex-start"><div style="flex:1;word-break:break-word">${esc(x.t)}${x.ts?`<small style="display:block;color:var(--sub)">${new Date(x.ts).toLocaleString()}</small>`:''}</div><button class="btn" data-da="${i}" title="Delete">🗑</button></div>`).join(''):'<div class="note" style="margin-top:10px">No announcements yet.</div>';
+}
+async function saveAnns(msg){
  try{
-  const r=await sb.from('settings').upsert({key:'announcement',value:v}).select();
+  const r=await sb.from('settings').upsert({key:'announcement',value:JSON.stringify(anns)}).select();
   if(r.error)throw r.error;
   if(!r.data.length)throw new Error('Not allowed — run the settings SQL and sign in with the admin account.');
-  note(v?'Announcement published.':'Announcement cleared.');if(!v)$('annin').value='';
+  note(msg);renderAnn();
  }catch(err){note('Couldn’t save: '+(err&&err.message||'unknown error'))}
 }
-$('annsave').onclick=()=>saveAnn($('annin').value.trim());
-$('annclr').onclick=()=>saveAnn('');
+$('annsave').onclick=()=>{const t=$('annin').value.trim();if(!t)return;anns.unshift({t,ts:Date.now()});anns=anns.slice(0,20);$('annin').value='';saveAnns('Announcement posted.')};
+$('annlist').addEventListener('click',e=>{const b=e.target.closest('[data-da]');if(!b)return;anns.splice(+b.dataset.da,1);saveAnns('Announcement removed.')});
 $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('in').click()});
 $('out').onclick=async()=>{await sb.auth.signOut();posts=[];cmts=[];show(false)};
 function palms(){
